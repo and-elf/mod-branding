@@ -5,6 +5,7 @@
 #include "DatabaseEnv.h"
 #include "Log.h"
 #include "Player.h"
+#include <algorithm>
 
 namespace Branding
 {
@@ -120,6 +121,30 @@ namespace Branding
 
         ProficiencyState& state = states[static_cast<size_t>(activity.activeBrand)];
         return Branding::ApplyActivity(state, activity, knowledge, _config, _clock);
+    }
+
+    void ProficiencyMgr::SetBrandLevel(ObjectGuid charGuid, BrandId brand, uint8_t level)
+    {
+        if (brand >= BrandId::COUNT)
+            return;
+
+        uint8_t const capped = std::min<uint8_t>(level, _config.MaxLevel());
+        uint64_t const targetXp = XpForLevel(capped, _config);
+
+        ProficiencyState& state = _charStates[charGuid][static_cast<size_t>(brand)];
+        if (state.totalXp >= targetXp)
+            return;   // idempotent: never lower an already-higher proficiency
+
+        state.totalXp = targetXp;
+
+        // Persist immediately: a caller on the login path (mod-branded-bots) may run before this
+        // manager's LoadPlayer, which resets and reloads character_branding from the DB -- the row must
+        // already be there to survive the reload. REPLACE mirrors SavePlayer's write shape.
+        CharacterDatabase.Execute(
+            "REPLACE INTO `character_branding` (`guid`, `brand`, `total_xp`, `recent_window`, `window_start`) "
+            "VALUES ({}, {}, {}, {}, {})",
+            charGuid.GetCounter(), static_cast<uint32>(brand), state.totalXp, state.recentXpWindow,
+            static_cast<uint32>(state.windowStartUnix));
     }
 
     double ProficiencyMgr::EffectStrength(ObjectGuid charGuid, uint32_t accountId, BrandId brand) const
