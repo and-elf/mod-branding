@@ -12,7 +12,7 @@
 #        Default:     0 - (disabled)
 #
 
-Branding.Enable = 0
+Branding.Enable = 1
 
 #
 #    Branding.Xp.MatchBonus
