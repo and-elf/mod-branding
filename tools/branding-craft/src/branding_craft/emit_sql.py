@@ -50,6 +50,7 @@ def _item_template_block(cat: Catalog) -> str:
         "entry", "class", "subclass", "name", "displayid", "Quality", "BuyPrice", "SellPrice",
         "InventoryType", "ItemLevel", "RequiredLevel", "RequiredSkill", "RequiredSkillRank",
         "stackable", "stat_type1", "stat_value1", "stat_type2", "stat_value2", "armor",
+        "dmg_min1", "dmg_max1", "dmg_type1", "delay",
         "spellid_1", "spelltrigger_1", "bonding", "Material",
     ]
 
@@ -63,16 +64,21 @@ def _item_template_block(cat: Catalog) -> str:
         entries.append(res.entry)
         rows.append([
             res.entry, res.item_class, res.subclass, res.name, res.displayid, res.quality,
-            0, 1, 0, 0, 0, 0, 0, res.stackable, 0, 0, 0, 0, 0, 0, 0, res.bonding, 4,
+            0, 1, 0, 0, 0, 0, 0, res.stackable, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, res.bonding, 4,
         ])
 
-    # Branded outputs (armour, modest stats -- power comes from branding procs, §1/§27).
+    # Branded outputs (armour, modest stats -- power comes from branding procs, §1/§27). Stats,
+    # armour and RequiredLevel come from the item itself: the starter trio keeps its historical
+    # defaults, the archetype sets (#1) carry per-slot role stats and the RequiredLevel-80 gate.
     for out in cat.outputs:
         entries.append(out.entry)
         rows.append([
             out.entry, out.item_class, out.subclass, out.name, out.displayid, out.quality,
-            0, 100, out.inventory_type, out.item_level, 0, out.required_skill, out.required_skill_rank,
-            1, 7, 12, 5, 8, 250, 0, 0, C.BIND_TO_ACCOUNT, 4,
+            0, 100, out.inventory_type, out.item_level, out.required_level,
+            out.required_skill, out.required_skill_rank,
+            1, out.stat1_type, out.stat1_value, out.stat2_type, out.stat2_value, out.armor,
+            out.dmg_min, out.dmg_max, out.dmg_type, out.delay,
+            0, 0, C.BIND_TO_ACCOUNT, 4,
         ])
 
     # Recipe pattern items (BoP) that teach the craft spell on use.
@@ -81,7 +87,7 @@ def _item_template_block(cat: Catalog) -> str:
         rows.append([
             r.pattern_entry, C.ITEM_CLASS_RECIPE, r.pattern_subclass, f"Pattern: {r.name}",
             r.pattern_displayid, r.pattern_quality, 0, 5000, 0, 0, 0, r.skill_line, r.req_skill_value,
-            1, 0, 0, 0, 0, 0, r.spell_id, C.SPELL_TRIGGER_LEARN, C.BIND_WHEN_PICKED_UP, 0,
+            1, 0, 0, 0, 0, 0, 0, 0, 0, 0, r.spell_id, C.SPELL_TRIGGER_LEARN, C.BIND_WHEN_PICKED_UP, 0,
         ])
 
     where = "`entry` IN (" + ", ".join(str(e) for e in entries) + ")"

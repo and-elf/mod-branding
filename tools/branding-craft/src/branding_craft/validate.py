@@ -56,11 +56,12 @@ def validate(catalog: Catalog = CATALOG) -> list[str]:
             problems.append(f"{ctx}: duplicate recipe id")
         seen_recipe_ids.add(r.id)
 
-        # Band membership (§16.4) for every emitted entry / id.
-        if r.output.entry not in C.OUTPUT_BAND:
-            problems.append(f"{ctx}: output {r.output.entry} outside output band {C.OUTPUT_BAND}")
-        if r.pattern_entry not in C.PATTERN_BAND:
-            problems.append(f"{ctx}: pattern {r.pattern_entry} outside pattern band {C.PATTERN_BAND}")
+        # Band membership (§16.4) for every emitted entry / id. Outputs/patterns may sit in either the
+        # starter sub-band or the archetype-set sub-band (#1).
+        if not (r.output.entry in C.OUTPUT_BAND or r.output.entry in C.SET_OUTPUT_BAND):
+            problems.append(f"{ctx}: output {r.output.entry} outside output bands")
+        if not (r.pattern_entry in C.PATTERN_BAND or r.pattern_entry in C.SET_PATTERN_BAND):
+            problems.append(f"{ctx}: pattern {r.pattern_entry} outside pattern bands")
         if r.spell_id not in C.CRAFT_SPELL_BAND:
             problems.append(f"{ctx}: spell {r.spell_id} outside craft-spell band {C.CRAFT_SPELL_BAND}")
         if r.skill_line_ability_id not in C.SKILL_LINE_ABILITY_BAND:

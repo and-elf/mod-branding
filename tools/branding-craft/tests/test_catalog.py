@@ -14,8 +14,9 @@ def test_every_entry_sits_in_its_reserved_band():
     for frag in CATALOG.school_fragments:
         assert frag.entry in C.SCHOOL_FRAGMENT_BAND
     for r in CATALOG.recipes:
-        assert r.output.entry in C.OUTPUT_BAND
-        assert r.pattern_entry in C.PATTERN_BAND
+        # Outputs/patterns live in either the starter sub-band or the archetype-set sub-band (§16.4).
+        assert r.output.entry in C.OUTPUT_BAND or r.output.entry in C.SET_OUTPUT_BAND
+        assert r.pattern_entry in C.PATTERN_BAND or r.pattern_entry in C.SET_PATTERN_BAND
         assert r.spell_id in C.CRAFT_SPELL_BAND
         assert r.skill_line_ability_id in C.SKILL_LINE_ABILITY_BAND
 
