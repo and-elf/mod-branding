@@ -18,8 +18,9 @@ public:
     }
 };
 
-// Loads equipped items' brand state on login, and refreshes the cache when an Etch-eligible item is
-// equipped mid-session (so the multi-slot aggregate / gates stay correct without a relog, #31).
+// Loads equipped items' brand state on login, and refreshes the cache when any item is equipped
+// mid-session (so the crafted per-slot lookups (#1) and the Etch aggregate / gates stay correct
+// without a relog, #31).
 class BrandingItemPlayerScript : public PlayerScript
 {
 public:
@@ -32,7 +33,8 @@ public:
 
     void OnPlayerEquip(Player* /*player*/, Item* it, uint8 bag, uint8 slot, bool /*update*/) override
     {
-        if (bag == INVENTORY_SLOT_BAG_0 && ItemBrandingMgr::EtchEligibleSlot(slot))
+        // Any equipped slot may now carry a Brand (crafted armour/weapon, #1, or an Etched item, #31).
+        if (bag == INVENTORY_SLOT_BAG_0 && slot < EQUIPMENT_SLOT_END)
             sItemBrandingMgr->CacheItem(it);
     }
 };

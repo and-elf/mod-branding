@@ -5,6 +5,7 @@
 #include "branding/effects/ItemBrand.h"
 #include "ObjectGuid.h"
 #include <cstdint>
+#include <string_view>
 #include <unordered_map>
 
 class Item;
@@ -49,8 +50,10 @@ namespace Branding
         // gates correct without a relog). No-op if already cached or the item carries no Brand.
         void CacheItem(Item* item);
 
-        // Brand the equipped weapon with the player's active brand (step 0). Persists.
-        bool BrandEquipped(Player* player, BrandId brand);
+        // Brand the item in `equipSlot` with the player's active brand (step 0). Persists. The slot must
+        // be brandable (armour + main-hand + ranged, see IsBrandableSlot); returns false otherwise or
+        // when the slot is empty. Defaults to the main-hand for the no-slot command / legacy callers.
+        bool BrandEquipped(Player* player, BrandId brand, uint8_t equipSlot = 15 /* EQUIPMENT_SLOT_MAINHAND */);
 
         // One-shot Etch (#31): brand the item in `equipSlot` with the player's active school, rank-locked
         // (never upgradeable) and soulbound (BoP), consuming Essence. Validates + consumes only on
@@ -62,27 +65,35 @@ namespace Branding
         // two trinkets -- the proc-surface slots, #31 first cut).
         static bool EtchEligibleSlot(uint8_t equipSlot);
 
+        // True if `equipSlot` can carry a *crafted* Branded item (#1): the 9 armour slots + main-hand +
+        // ranged. The crafted brand/upgrade path accepts these; off-hand/trinkets stay the Etch domain.
+        static bool IsBrandableSlot(uint8_t equipSlot);
+
+        // Parse a player-supplied slot token ("chest", "mainhand", "ranged", ...) to an equipment slot.
+        // Recognises a superset of the brandable slots so the command layer can tell "unknown slot"
+        // from "not brandable". Returns false on an unknown token.
+        static bool ParseEquipSlot(std::string_view token, uint8_t& equipSlot);
+
         // Aggregate proc multiplier from ALL equipped, expressible Etched items of the player's active
         // school (#31 decisions 1 & 5): one per item across slots, combined through the catalyst
         // self-stack DR (CatalystSelfStackMultiplier). In [1.0, MaxRaidMul]; 1.0 with none. This is where
         // "unlimited items = wardrobe flexibility, not stacked power" is realised.
         double AggregateEtchedIntensity(Player* player) const;
 
-        // Spend `resources` to upgrade the equipped weapon's brand (ApplyItemUpgrade). Persists.
-        // Returns the internal levels gained (0 if no branded weapon / nothing affordable).
-        uint8_t UpgradeEquipped(Player* player, uint32_t resources);
+        // Spend `resources` to upgrade the brand of the item in `equipSlot` (ApplyItemUpgrade).
+        // Persists. Returns the internal levels gained (0 if no branded item there / nothing
+        // affordable). Defaults to the main-hand.
+        uint8_t UpgradeEquipped(Player* player, uint32_t resources, uint8_t equipSlot = 15 /* EQUIPMENT_SLOT_MAINHAND */);
 
-        // Resolved (anti-P2W) effect intensity of the equipped weapon for `player`; 1.0 baseline.
-        double EquippedIntensity(Player* player) const;
+        // Resolved (anti-P2W) effect intensity of the item in `equipSlot` for `player`; 1.0 baseline.
+        double EquippedIntensity(Player* player, uint8_t equipSlot = 15 /* EQUIPMENT_SLOT_MAINHAND */) const;
 
-        // Fetch the equipped weapon's brand state for display; false if no branded weapon.
-        bool EquippedState(Player* player, ItemBrandState& out) const;
+        // Fetch the brand state of the item in `equipSlot` for display; false if none. Main-hand default.
+        bool EquippedState(Player* player, ItemBrandState& out, uint8_t equipSlot = 15 /* EQUIPMENT_SLOT_MAINHAND */) const;
 
     private:
         ItemBrandingMgr() = default;
 
-        // Resolves the equipped main-hand item GUID counter, or 0 if none.
-        uint32_t EquippedItemGuid(Player* player) const;
         // Resolves the item GUID counter in an arbitrary equipment slot, or 0 if empty.
         uint32_t ItemGuidAtSlot(Player* player, uint8_t equipSlot) const;
         // Loads one item's brand row into the cache (skips if already cached or no row exists).

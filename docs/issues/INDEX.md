@@ -62,6 +62,7 @@ See [../ARCHITECTURE.md](../ARCHITECTURE.md) for the full spec. Section refs (§
   (economy content — fills the #09 loop; #27 server-data, #29 client-coupled)
    #09 economy-crafting ─▶ #27 branded-item-content   (item_template + branding_recipe mirror + bind + upgrade curve; no client patch)
                             └▶ #29 native-profession-crafting  (Spell.dbc craft spells + skill_line_ability + BoP patterns + MPQ) ◀ needs #27
+                                 └▶ #32 branded-archetype-sets (8 armour-class/role sets x 9 slots; modest+proc, RequiredLevel 80) ◀ needs #27+#29
 
   (low-friction on-ramp — server-only, reuses shipped cores; sibling of the crafted economy)
    #05 item-branding ─┐

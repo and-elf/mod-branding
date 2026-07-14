@@ -15,6 +15,13 @@ namespace
     // Etch-eligible equipment slots (proc-surface: weapons + trinkets, #31 first cut).
     constexpr uint8 EtchSlots[] = { EQUIPMENT_SLOT_MAINHAND, EQUIPMENT_SLOT_OFFHAND,
         EQUIPMENT_SLOT_RANGED, EQUIPMENT_SLOT_TRINKET1, EQUIPMENT_SLOT_TRINKET2 };
+
+    // Slots a *crafted* Branded item (#1) occupies: the 9 armour slots + main-hand + ranged (the
+    // hunter's weapon). The crafted brand/upgrade path accepts these; off-hand/trinkets stay Etch-only.
+    constexpr uint8 BrandableSlots[] = {
+        EQUIPMENT_SLOT_HEAD, EQUIPMENT_SLOT_SHOULDERS, EQUIPMENT_SLOT_CHEST, EQUIPMENT_SLOT_WAIST,
+        EQUIPMENT_SLOT_LEGS, EQUIPMENT_SLOT_FEET, EQUIPMENT_SLOT_WRISTS, EQUIPMENT_SLOT_HANDS,
+        EQUIPMENT_SLOT_BACK, EQUIPMENT_SLOT_MAINHAND, EQUIPMENT_SLOT_RANGED };
 }
 
 namespace Branding
@@ -43,11 +50,6 @@ namespace Branding
         return item ? item->GetGUID().GetCounter() : 0;
     }
 
-    uint32_t ItemBrandingMgr::EquippedItemGuid(Player* player) const
-    {
-        return ItemGuidAtSlot(player, EQUIPMENT_SLOT_MAINHAND);
-    }
-
     bool ItemBrandingMgr::EtchEligibleSlot(uint8_t equipSlot)
     {
         for (uint8 slot : EtchSlots)
@@ -55,6 +57,43 @@ namespace Branding
                 return true;
 
         return false;
+    }
+
+    bool ItemBrandingMgr::IsBrandableSlot(uint8_t equipSlot)
+    {
+        for (uint8 slot : BrandableSlots)
+            if (slot == equipSlot)
+                return true;
+
+        return false;
+    }
+
+    bool ItemBrandingMgr::ParseEquipSlot(std::string_view token, uint8_t& equipSlot)
+    {
+        // A superset of the brandable slots (+ off-hand) so the command layer can distinguish an
+        // unknown token from a known-but-not-brandable one. String-literal keys have static storage,
+        // so the string_view keys stay valid.
+        static std::unordered_map<std::string_view, uint8_t> const slots = {
+            { "head", EQUIPMENT_SLOT_HEAD },
+            { "shoulders", EQUIPMENT_SLOT_SHOULDERS }, { "shoulder", EQUIPMENT_SLOT_SHOULDERS },
+            { "chest", EQUIPMENT_SLOT_CHEST },
+            { "waist", EQUIPMENT_SLOT_WAIST }, { "belt", EQUIPMENT_SLOT_WAIST },
+            { "legs", EQUIPMENT_SLOT_LEGS },
+            { "feet", EQUIPMENT_SLOT_FEET }, { "boots", EQUIPMENT_SLOT_FEET },
+            { "wrists", EQUIPMENT_SLOT_WRISTS }, { "wrist", EQUIPMENT_SLOT_WRISTS },
+            { "hands", EQUIPMENT_SLOT_HANDS }, { "gloves", EQUIPMENT_SLOT_HANDS },
+            { "back", EQUIPMENT_SLOT_BACK }, { "cloak", EQUIPMENT_SLOT_BACK },
+            { "mainhand", EQUIPMENT_SLOT_MAINHAND }, { "mh", EQUIPMENT_SLOT_MAINHAND },
+            { "offhand", EQUIPMENT_SLOT_OFFHAND }, { "oh", EQUIPMENT_SLOT_OFFHAND },
+            { "ranged", EQUIPMENT_SLOT_RANGED }, { "rg", EQUIPMENT_SLOT_RANGED },
+        };
+
+        auto it = slots.find(token);
+        if (it == slots.end())
+            return false;
+
+        equipSlot = it->second;
+        return true;
     }
 
     void ItemBrandingMgr::Save(uint32_t itemGuid, ItemBrandState const& state)
@@ -91,9 +130,10 @@ namespace Branding
         if (!_enabled || !player)
             return;
 
-        // Load the brand state of every equipped Etch-eligible item (weapons + trinkets), so the
-        // multi-slot aggregate (AggregateEtchedIntensity) and the per-item gates see them all (#31).
-        for (uint8 slot : EtchSlots)
+        // Cache the brand state of EVERY equipped item (armour, weapons, trinkets), so both the crafted
+        // per-slot lookups (#1) and the Etch multi-slot aggregate (#31) see them without a relog. A
+        // slot with no brand row is a cheap no-op in CacheBrandState.
+        for (uint8 slot = EQUIPMENT_SLOT_START; slot < EQUIPMENT_SLOT_END; ++slot)
             CacheBrandState(ItemGuidAtSlot(player, slot));
     }
 
@@ -107,9 +147,12 @@ namespace Branding
         CacheBrandState(item->GetGUID().GetCounter());
     }
 
-    bool ItemBrandingMgr::BrandEquipped(Player* player, BrandId brand)
+    bool ItemBrandingMgr::BrandEquipped(Player* player, BrandId brand, uint8_t equipSlot)
     {
-        uint32_t const itemGuid = EquippedItemGuid(player);
+        if (!IsBrandableSlot(equipSlot))
+            return false;
+
+        uint32_t const itemGuid = ItemGuidAtSlot(player, equipSlot);
         if (itemGuid == 0)
             return false;
 
@@ -120,11 +163,16 @@ namespace Branding
         return true;
     }
 
-    uint8_t ItemBrandingMgr::UpgradeEquipped(Player* player, uint32_t resources)
+    uint8_t ItemBrandingMgr::UpgradeEquipped(Player* player, uint32_t resources, uint8_t equipSlot)
     {
-        uint32_t const itemGuid = EquippedItemGuid(player);
+        uint32_t const itemGuid = ItemGuidAtSlot(player, equipSlot);
         if (itemGuid == 0)
             return 0;
+
+        // Ensure the item's persisted brand state is in the cache before we take a reference: without
+        // this, operator[] on an uncached-but-branded item would insert a fresh rank-0 state and the
+        // Save() below would wipe its real rank. (LoadEquipped/CacheItem usually cover this; belt-and-braces.)
+        CacheBrandState(itemGuid);
 
         ItemBrandState& state = _items[itemGuid];
         ItemUpgradeResult const result = ApplyItemUpgrade(state, resources, _config);
@@ -132,9 +180,9 @@ namespace Branding
         return result.levelsGained;
     }
 
-    double ItemBrandingMgr::EquippedIntensity(Player* player) const
+    double ItemBrandingMgr::EquippedIntensity(Player* player, uint8_t equipSlot) const
     {
-        uint32_t const itemGuid = EquippedItemGuid(player);
+        uint32_t const itemGuid = ItemGuidAtSlot(player, equipSlot);
         auto it = _items.find(itemGuid);
         if (itemGuid == 0 || it == _items.end())
             return 1.0;
@@ -227,9 +275,9 @@ namespace Branding
         return CatalystSelfStackMultiplier(count, sCatalystMgr->Config());
     }
 
-    bool ItemBrandingMgr::EquippedState(Player* player, ItemBrandState& out) const
+    bool ItemBrandingMgr::EquippedState(Player* player, ItemBrandState& out, uint8_t equipSlot) const
     {
-        auto it = _items.find(EquippedItemGuid(player));
+        auto it = _items.find(ItemGuidAtSlot(player, equipSlot));
         if (it == _items.end())
             return false;
 

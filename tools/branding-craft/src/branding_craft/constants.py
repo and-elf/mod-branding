@@ -5,13 +5,16 @@ trivially auditable against the AzerothCore base schema and the §16.4 entry-ban
 """
 
 # --- mod-branding reserved entry bands (ARCHITECTURE.md §16.4) ---------------------------------
-# item_template reserved band: 190000-190199 (widened for the per-school Fragment sub-band).
+# item_template reserved band: 190000-190999 (widened from 190199 for the archetype set sub-bands,
+# issue #1 -- 8 armour-class/role sets x 9 slots don't fit the original 40-slot output sub-band).
 ITEM_BAND_MIN = 190000
-ITEM_BAND_MAX = 190199
+ITEM_BAND_MAX = 190999
 RESOURCE_BAND = range(190000, 190010)         # generic Material, generic Fragment
-OUTPUT_BAND = range(190010, 190050)           # Branded outputs
-PATTERN_BAND = range(190050, 190100)          # Recipe pattern items
+OUTPUT_BAND = range(190010, 190050)           # starter Branded outputs (the shipped chest trio)
+PATTERN_BAND = range(190050, 190100)          # starter recipe pattern items
 SCHOOL_FRAGMENT_BAND = range(190100, 190150)  # per-school Fragments (190100 + BrandId)
+SET_OUTPUT_BAND = range(190200, 190500)       # archetype set armour outputs (#1)
+SET_PATTERN_BAND = range(190500, 190800)      # archetype set recipe patterns (#1)
 
 # Per-school Fragment entries are laid out contiguously as SCHOOL_FRAGMENT_BASE + BrandId, so the C++
 # adapter resolves a recipe's school -> Fragment item with a single base + offset (no 15 config keys).
@@ -47,9 +50,20 @@ BIND_TO_ACCOUNT = 5       # BoA -- Fragments and Branded items (account-wide gri
 
 # --- item_template.class / subclass ------------------------------------------------------------
 ITEM_CLASS_CONSUMABLE = 0
+ITEM_CLASS_WEAPON = 2
 ITEM_CLASS_ARMOR = 4
 ITEM_CLASS_TRADE_GOODS = 7
 ITEM_CLASS_RECIPE = 9
+
+# Weapon subclasses (ItemSubclassWeapon) -- the main-hands the archetype sets carry (#1, weapons).
+# All branded weapons are Blacksmithing-crafted (owner decision), regardless of type.
+ITEM_SUBCLASS_WEAPON_AXE1H = 0
+ITEM_SUBCLASS_WEAPON_MACE1H = 4
+ITEM_SUBCLASS_WEAPON_SWORD1H = 7
+ITEM_SUBCLASS_WEAPON_SWORD2H = 8
+ITEM_SUBCLASS_WEAPON_DAGGER = 15
+ITEM_SUBCLASS_WEAPON_CROSSBOW = 18   # the hunter's ranged main weapon (#1: mail-DPS set)
+ITEM_SUBCLASS_RECIPE_BLACKSMITHING_WEAPON = 5  # weapon patterns are Blacksmithing recipes too
 ITEM_SUBCLASS_TRADE_GOODS_CLOTH = 5
 ITEM_SUBCLASS_TRADE_GOODS_LEATHER = 6
 # Recipe (book/pattern) subclasses map 1:1 to the profession the pattern teaches.
@@ -58,12 +72,43 @@ ITEM_SUBCLASS_RECIPE_TAILORING = 3
 ITEM_SUBCLASS_RECIPE_BLACKSMITHING = 5
 
 # Armor subclasses (Branded outputs clone heroic-dungeon slots; §27 modest base).
+ITEM_SUBCLASS_ARMOR_MISC = 0   # cloaks (universal, class-agnostic), held off-hands
 ITEM_SUBCLASS_ARMOR_CLOTH = 1
 ITEM_SUBCLASS_ARMOR_LEATHER = 2
+ITEM_SUBCLASS_ARMOR_MAIL = 3
 ITEM_SUBCLASS_ARMOR_PLATE = 4
 
-# inventory_type for the cloned slot.
+# inventory_type for the cloned slot (INVTYPE_*, item_template.InventoryType -- NOT the character
+# EquipmentSlots enum the playerbots BiS table uses).
+INVTYPE_HEAD = 1
+INVTYPE_SHOULDERS = 3
 INVTYPE_CHEST = 5
+INVTYPE_WAIST = 6
+INVTYPE_LEGS = 7
+INVTYPE_FEET = 8
+INVTYPE_WRISTS = 9
+INVTYPE_HANDS = 10
+INVTYPE_CLOAK = 16
+INVTYPE_2HWEAPON = 17
+INVTYPE_WEAPONMAINHAND = 21
+INVTYPE_RANGEDRIGHT = 26   # guns / crossbows / wands (ranged slot)
+
+# --- item_template.stat_typeN (ItemModType) -- the modest role stats the set pieces carry (§27:
+# base power stays modest; the real power is the branding proc applied at runtime, never baked here).
+ITEM_MOD_AGILITY = 3
+ITEM_MOD_STRENGTH = 4
+ITEM_MOD_INTELLECT = 5
+ITEM_MOD_SPIRIT = 6
+ITEM_MOD_STAMINA = 7
+ITEM_MOD_DODGE_RATING = 13
+ITEM_MOD_CRIT_RATING = 32
+ITEM_MOD_ATTACK_POWER = 38
+ITEM_MOD_SPELL_POWER = 45
+
+# Endgame equip gate for the archetype sets (#1). RequiredLevel 80 answers the issue's own worry
+# ("a feral druid should not gain 3k AP from a level-1 item"): the pieces cannot be equipped below
+# 80, so no low-level twinking -- and combined with the modest §27 base, form scaling is a non-issue.
+SET_REQUIRED_LEVEL = 80
 
 # --- SkillLine ids (SkillLine.dbc, the professions the recipes live in) ------------------------
 SKILL_BLACKSMITHING = 164
@@ -74,6 +119,7 @@ SKILL_TAILORING = 197
 QUALITY_COMMON = 1
 QUALITY_UNCOMMON = 2
 QUALITY_RARE = 3
+QUALITY_EPIC = 4
 
 # --- Spell.dbc enums (only what a CREATE_ITEM craft spell needs) -------------------------------
 SPELL_EFFECT_CREATE_ITEM = 24

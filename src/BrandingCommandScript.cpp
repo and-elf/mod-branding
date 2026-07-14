@@ -397,11 +397,36 @@ public:
         handler->PSendSysMessage("Active loadout: {} brand, proc archetype {}.",
             BrandName(loadout.activeBrand), uint32(loadout.selectedProcArchetype));
 
-        ItemBrandState itemState;
-        if (sItemBrandingMgr->EquippedState(player, itemState))
-            handler->PSendSysMessage("Equipped item: {} brand, step {}, level {}, intensity x{:.2f}.",
-                BrandName(itemState.brand), uint32(itemState.step), uint32(itemState.levelInStep),
-                sItemBrandingMgr->EquippedIntensity(player));
+        // Crafted brand state per brandable slot (armour + main-hand + ranged, #1). A relogless cache
+        // (LoadEquipped/OnPlayerEquip) keeps these current.
+        static constexpr struct { uint8 slot; char const* label; } brandSlots[] = {
+            { EQUIPMENT_SLOT_HEAD, "head" },     { EQUIPMENT_SLOT_SHOULDERS, "shoulders" },
+            { EQUIPMENT_SLOT_CHEST, "chest" },   { EQUIPMENT_SLOT_WAIST, "waist" },
+            { EQUIPMENT_SLOT_LEGS, "legs" },     { EQUIPMENT_SLOT_FEET, "feet" },
+            { EQUIPMENT_SLOT_WRISTS, "wrists" }, { EQUIPMENT_SLOT_HANDS, "hands" },
+            { EQUIPMENT_SLOT_BACK, "back" },     { EQUIPMENT_SLOT_MAINHAND, "mainhand" },
+            { EQUIPMENT_SLOT_RANGED, "ranged" },
+        };
+
+        bool anyItem = false;
+        for (auto const& s : brandSlots)
+        {
+            ItemBrandState itemState;
+            if (!sItemBrandingMgr->EquippedState(player, itemState, s.slot))
+                continue;
+
+            anyItem = true;
+            handler->PSendSysMessage("Branded item [{}]: {} brand, step {}, level {}, intensity x{:.2f}{}.",
+                s.label, BrandName(itemState.brand), uint32(itemState.step), uint32(itemState.levelInStep),
+                sItemBrandingMgr->EquippedIntensity(player, s.slot), itemState.etched ? " (etched)" : "");
+        }
+        if (!anyItem)
+            handler->PSendSysMessage("Branded items: none equipped.");
+
+        // Help: how to apply/raise a brand, and which slots the crafted path accepts.
+        handler->PSendSysMessage("  help: .branding itembrand [slot] | .branding upgradeitem <levels> [slot]");
+        handler->PSendSysMessage("  slots: head shoulders chest waist legs feet wrists hands back mainhand ranged");
+        handler->PSendSysMessage("  (off-hand/trinkets: .branding etch [slot]; set active brand: .branding setbrand <0-6>)");
 
         if (sItemBrandingMgr->EtchEnabled())
             handler->PSendSysMessage("Etched ({} brand): aggregate proc x{:.2f} (self-stack DR).",
@@ -496,33 +521,33 @@ public:
     }
 
     // `.branding itembrand` -- brand the equipped main-hand weapon with the player's active brand.
-    static bool HandleBrandingItemBrandCommand(ChatHandler* handler)
+    // Resolve an optional slot token to a brandable equipment slot (default main-hand). On an unknown
+    // or non-brandable token, sends the error and returns false. Shared by itembrand / upgradeitem.
+    static bool ResolveBrandableSlot(ChatHandler* handler, Optional<std::string_view> slotToken, uint8& equipSlot)
     {
-        Player* player = handler->GetPlayer();
-        if (!player)
-        {
-            handler->SendErrorMessage("This command must be used in-world.");
-            return false;
-        }
-        if (!sItemBrandingMgr->Enabled())
-        {
-            handler->SendErrorMessage("Item branding is disabled (Branding.Item.Enable).");
-            return false;
-        }
+        equipSlot = EQUIPMENT_SLOT_MAINHAND;
+        if (!slotToken)
+            return true;
 
-        BrandId const brand = sLoadoutMgr->GetLoadout(player->GetGUID()).activeBrand;
-        if (!sItemBrandingMgr->BrandEquipped(player, brand))
+        if (!ItemBrandingMgr::ParseEquipSlot(*slotToken, equipSlot))
         {
-            handler->SendErrorMessage("No equipped main-hand weapon to brand.");
+            handler->SendErrorMessage(
+                "Unknown slot '{}'. Use head|shoulders|chest|waist|legs|feet|wrists|hands|back|mainhand|ranged.",
+                *slotToken);
             return false;
         }
-
-        handler->PSendSysMessage("Equipped weapon branded {}.", BrandName(brand));
+        if (!ItemBrandingMgr::IsBrandableSlot(equipSlot))
+        {
+            handler->SendErrorMessage(
+                "That slot cannot carry a Branded item -- armour, main-hand or ranged only "
+                "(off-hand/trinkets use .branding etch).");
+            return false;
+        }
         return true;
     }
 
-    // `.branding upgradeitem <levels>` -- spend resources to raise the equipped weapon's intensity.
-    static bool HandleBrandingUpgradeItemCommand(ChatHandler* handler, uint32 levels)
+    // `.branding itembrand [slot]` -- brand the item in `slot` (default main-hand) with the active brand.
+    static bool HandleBrandingItemBrandCommand(ChatHandler* handler, Optional<std::string_view> slotToken)
     {
         Player* player = handler->GetPlayer();
         if (!player)
@@ -535,19 +560,54 @@ public:
             handler->SendErrorMessage("Item branding is disabled (Branding.Item.Enable).");
             return false;
         }
+
+        uint8 equipSlot;
+        if (!ResolveBrandableSlot(handler, slotToken, equipSlot))
+            return false;
+
+        BrandId const brand = sLoadoutMgr->GetLoadout(player->GetGUID()).activeBrand;
+        if (!sItemBrandingMgr->BrandEquipped(player, brand, equipSlot))
+        {
+            handler->SendErrorMessage("No equipped item in that slot to brand.");
+            return false;
+        }
+
+        handler->PSendSysMessage("Equipped item branded {}.", BrandName(brand));
+        return true;
+    }
+
+    // `.branding upgradeitem <levels> [slot]` -- spend resources to raise the intensity of the item in
+    // `slot` (default main-hand).
+    static bool HandleBrandingUpgradeItemCommand(ChatHandler* handler, uint32 levels, Optional<std::string_view> slotToken)
+    {
+        Player* player = handler->GetPlayer();
+        if (!player)
+        {
+            handler->SendErrorMessage("This command must be used in-world.");
+            return false;
+        }
+        if (!sItemBrandingMgr->Enabled())
+        {
+            handler->SendErrorMessage("Item branding is disabled (Branding.Item.Enable).");
+            return false;
+        }
+
+        uint8 equipSlot;
+        if (!ResolveBrandableSlot(handler, slotToken, equipSlot))
+            return false;
 
         if (levels == 0)
             levels = 1;
 
         uint32 const resources = levels * sItemBrandingMgr->Config().UpgradeCostPerLevel();
-        uint8 const gained = sItemBrandingMgr->UpgradeEquipped(player, resources);
+        uint8 const gained = sItemBrandingMgr->UpgradeEquipped(player, resources, equipSlot);
         if (gained == 0)
         {
-            handler->SendErrorMessage("Nothing upgraded -- no branded weapon equipped, or already maxed.");
+            handler->SendErrorMessage("Nothing upgraded -- no branded item in that slot, or already maxed.");
             return false;
         }
 
-        handler->PSendSysMessage("Upgraded equipped weapon by {} level(s).", uint32(gained));
+        handler->PSendSysMessage("Upgraded equipped item by {} level(s).", uint32(gained));
         return true;
     }
 
