@@ -34,6 +34,14 @@ namespace Branding
         // Grants XP for an activity, persisting nothing immediately (flushed on logout/periodic).
         XpResult ApplyActivity(ObjectGuid charGuid, uint32_t accountId, XpActivity const& activity);
 
+        // Grant a character a fixed proficiency level in `brand`, bypassing the activity/anti-farm
+        // ladder. Sets the brand's total XP to exactly XpForLevel(level) (clamped to Config().MaxLevel())
+        // and persists the `character_branding` row immediately, so a companion module that grants on the
+        // login path (e.g. mod-branded-bots, whose PlayerScript runs before this manager's LoadPlayer)
+        // survives the DB reload. Idempotent: never lowers an already-higher cached level. Intended for
+        // server-managed characters (bots); real players earn levels via ApplyActivity.
+        void SetBrandLevel(ObjectGuid charGuid, BrandId brand, uint8_t level);
+
         // Resolved, anti-P2W effect strength for a brand on the character's current account.
         double EffectStrength(ObjectGuid charGuid, uint32_t accountId, BrandId brand) const;
 
