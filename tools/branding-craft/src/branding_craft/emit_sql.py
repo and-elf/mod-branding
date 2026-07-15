@@ -64,7 +64,7 @@ def _item_template_block(cat: Catalog) -> str:
         entries.append(res.entry)
         rows.append([
             res.entry, res.item_class, res.subclass, res.name, res.displayid, res.quality,
-            0, 1, 0, 0, 0, 0, 0, res.stackable, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, res.bonding, 4,
+            0, 1, 0, 0, 0, 0, 0, res.stackable, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, res.bonding, 4,
         ])
 
     # Branded outputs (armour, modest stats -- power comes from branding procs, §1/§27). Stats,
