@@ -1,0 +1,12 @@
+# Build artifacts (standalone core test builds, IDE/CMake output)
+build/
+cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+compile_commands.json
+
+# Editor / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store

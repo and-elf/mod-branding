@@ -1,7 +1,7 @@
 #ifndef MOD_BRANDING_CORE_COMMON_CONFIG_H
 #define MOD_BRANDING_CORE_COMMON_CONFIG_H
 
-#include "Brand.h"
+#include "branding/common/Brand.h"
 #include <cstdint>
 
 namespace Branding
