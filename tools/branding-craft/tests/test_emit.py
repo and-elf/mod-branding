@@ -27,6 +27,23 @@ def test_every_insert_has_delete_on_the_immediately_preceding_line():
             assert i > 0 and lines[i - 1].startswith("DELETE FROM `"), line
 
 
+def _row_cell_count(row: str) -> int:
+    # Count top-level cells in a "(...)" value row, honouring single-quoted strings (with '' escapes).
+    reader = csv.reader(io.StringIO(row), quotechar="'", skipinitialspace=True)
+    return len(next(reader))
+
+
+def test_every_value_row_matches_its_column_count():
+    # MySQL 1136 ("Column count doesn't match value count") guard: every INSERT's value rows must
+    # carry exactly as many cells as the column list. Covers all tables emitted by the world SQL.
+    sql = emit_world_sql()
+    for insert in re.finditer(r"INSERT INTO `(\w+)` \(([^)]*)\) VALUES(.*?);", sql, re.DOTALL):
+        table, col_list, body = insert.group(1), insert.group(2), insert.group(3)
+        n_cols = len(col_list.split(","))
+        for row in re.findall(r"\(([^)]*)\)", body):
+            assert _row_cell_count(row) == n_cols, f"{table}: {row}"
+
+
 def _values_block(sql: str, table: str) -> str:
     # the value rows live after the VALUES keyword, skipping the column-list parens
     return sql.split(f"INSERT INTO `{table}`")[1].split(" VALUES")[1].split(";")[0]
