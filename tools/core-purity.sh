@@ -33,6 +33,18 @@ while IFS= read -r -d '' header; do
     CORE_HEADERS["$(basename "${header}")"]=1
 done < <(find "${CORE_DIR}" -type f \( -name '*.h' -o -name '*.hpp' \) -print0)
 
+# The shared brand taxonomy (Brand.h) and the injected IRng/IClock interfaces now live in the
+# header-only mod-common module -- itself dependency-free pure core, not an AzerothCore header.
+# Mirror tests/standalone's COMMON_DIR so those shared headers count as permitted core headers.
+# (mod-common is a sibling checkout; if it is absent, an include of Brand.h/Rng.h/Clock.h is
+# reported as a violation, matching the build's requirement.)
+COMMON_CORE_DIR="${MODULE_ROOT}/../mod-common/src/branding/common"
+if [[ -d "${COMMON_CORE_DIR}" ]]; then
+    while IFS= read -r -d '' header; do
+        CORE_HEADERS["$(basename "${header}")"]=1
+    done < <(find "${COMMON_CORE_DIR}" -type f \( -name '*.h' -o -name '*.hpp' \) -print0)
+fi
+
 violations=0
 
 # Walk every quoted #include in the core and check its basename is a known core header.

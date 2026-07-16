@@ -29,11 +29,17 @@ set(BRANDING_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 set(CORE_DIR ${BRANDING_ROOT}/src/core)
 set(TESTS_DIR ${BRANDING_ROOT}/tests)
 
+# The shared brand taxonomy (Branding::BrandId) and the injected IRng/IClock interfaces now live in
+# the header-only mod-common module. It is a sibling checkout (install-modules.sh clones it next to
+# mod-branding); expose its src root so "branding/common/<name>.h" resolves here as it does in the
+# full AzerothCore build.
+set(COMMON_DIR ${BRANDING_ROOT}/../mod-common/src)
+
 file(GLOB_RECURSE CORE_SOURCES CONFIGURE_DEPENDS ${CORE_DIR}/*.cpp)
 file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS ${TESTS_DIR}/*.cpp)
 
 add_executable(branding_core_tests ${CORE_SOURCES} ${TEST_SOURCES})
-target_include_directories(branding_core_tests PRIVATE ${CORE_DIR} ${TESTS_DIR})
+target_include_directories(branding_core_tests PRIVATE ${CORE_DIR} ${TESTS_DIR} ${COMMON_DIR})
 target_link_libraries(branding_core_tests PRIVATE gtest_main)
 
 # -Werror to mirror CI; the core must compile clean.
