@@ -435,8 +435,8 @@ public:
         handler->PSendSysMessage("Catalyst: same-role rank {}, raid multiplier x{:.2f}.",
             uint32(sCatalystMgr->SameRoleBrandedRank(player)), sCatalystMgr->RaidMultiplierFor(player));
 
-        // §14.11: the chosen role for this loadout (explicit or auto) and the role it resolves to via
-        // the active default policy + class capability clamp.
+        // §14.11: the chosen role for this loadout (explicit or auto) and the role it resolves to.
+        // An explicit choice resolves to itself (no class gate, #13); auto resolves via the default policy.
         handler->PSendSysMessage("Role: {} ({}) -> resolved {}.",
             RoleName(loadout.selectedRole),
             loadout.selectedRole == RoleContribution::None ? "auto" : "explicit",
@@ -875,8 +875,8 @@ public:
     }
 
     // `.branding setrole <auto|tank|healer|dps>` -- choose the role this loadout expresses (§14.11).
-    // Gated by class capability: a class that can't fill a role is refused; `auto` clears the choice so
-    // the configured default policy decides.
+    // #13: fully decoupled from class -- any class may pick any role at full magnitude; `auto` clears
+    // the choice so the configured default policy decides.
     static bool HandleBrandingSetRoleCommand(ChatHandler* handler, std::string roleArg)
     {
         Player* player = handler->GetPlayer();
@@ -903,7 +903,7 @@ public:
 
         if (!sLoadoutMgr->SetRole(player, role))
         {
-            handler->SendErrorMessage("Your class cannot express the {} role.", RoleName(role));
+            handler->SendErrorMessage("Could not set the {} role. Try again in-world.", RoleName(role));
             return false;
         }
 

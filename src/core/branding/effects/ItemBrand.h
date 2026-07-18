@@ -73,8 +73,8 @@ namespace Branding
     {
         BrandId activeBrand = BrandId::Fire;
         uint8_t selectedProcArchetype = 0;
-        // §14.11: player-chosen role; None = unset -> resolved by the default RolePolicy. Validity of
-        // an explicit choice is gated by class capability (see RolePolicy.h), not by IsLoadoutValid.
+        // §14.11: player-chosen role; None = unset -> resolved by the default RolePolicy. #13: an
+        // explicit choice is fully open (any class, any role) -- neither class-gated nor IsLoadoutValid-gated.
         RoleContribution selectedRole = RoleContribution::None;
     };
 

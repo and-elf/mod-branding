@@ -43,9 +43,10 @@ namespace Branding
         uint8_t const classId = player->getClass();
         RoleContribution const chosen = sLoadoutMgr->GetLoadout(player->GetGUID()).selectedRole;
 
-        // Fast path: an explicit, class-legal choice resolves with no talent-map sampling.
+        // Fast path: an explicit choice is honoured at full magnitude with no talent-map sampling.
+        // #13: fully decoupled from class -- no capability clamp, any class may express any role.
         if (chosen != RoleContribution::None)
-            return RoleAllowed(classId, chosen) ? chosen : RoleContribution::Damage;
+            return chosen;
 
         // Unset -> default policy. Only sample the live signals when the active policy reads them.
         RoleSignals signals = g_policy->UsesSignals() ? SampleSignals(player) : RoleSignals{};

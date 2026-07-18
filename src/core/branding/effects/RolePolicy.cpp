@@ -4,10 +4,10 @@ namespace Branding
 {
     namespace
     {
-        // WoW 3.3.5 class ids.
-        constexpr uint8_t CLASS_WARRIOR = 1, CLASS_PALADIN = 2, CLASS_HUNTER = 3, CLASS_ROGUE = 4,
-                          CLASS_PRIEST = 5, CLASS_DEATH_KNIGHT = 6, CLASS_SHAMAN = 7, CLASS_MAGE = 8,
-                          CLASS_WARLOCK = 9, CLASS_DRUID = 11;
+        // WoW 3.3.5 class ids (only those the talent-inferred default policy disambiguates; the rest
+        // fall through to the Damage default). Role selection itself is class-independent (#13).
+        constexpr uint8_t CLASS_WARRIOR = 1, CLASS_PALADIN = 2, CLASS_PRIEST = 5,
+                          CLASS_DEATH_KNIGHT = 6, CLASS_SHAMAN = 7, CLASS_DRUID = 11;
 
         // ShapeshiftForm values (UnitDefines.h).
         constexpr uint8_t FORM_CAT = 0x01, FORM_BEAR = 0x05, FORM_DIREBEAR = 0x08;
@@ -35,30 +35,14 @@ namespace Branding
         }
     }
 
-    uint8_t RoleCapabilityMask(uint8_t classId)
+    uint8_t RoleCapabilityMask(uint8_t /*classId*/)
     {
-        uint8_t const dps = Bit(RoleContribution::Damage);
-        uint8_t const tank = Bit(RoleContribution::Tank);
-        uint8_t const heal = Bit(RoleContribution::Healer);
-
-        switch (classId)
-        {
-            case CLASS_WARRIOR:
-            case CLASS_DEATH_KNIGHT:
-                return dps | tank;
-            case CLASS_PRIEST:
-            case CLASS_SHAMAN:
-                return dps | heal;
-            case CLASS_PALADIN:
-            case CLASS_DRUID:
-                return dps | tank | heal;
-            case CLASS_HUNTER:
-            case CLASS_ROGUE:
-            case CLASS_MAGE:
-            case CLASS_WARLOCK:
-            default:
-                return dps;   // pure dps / unknown: Damage only
-        }
+        // #13 (owner decision 2026-07-18): role/archetype selection is fully decoupled from class --
+        // the former per-class "anti-degenerate" guardrail is intentionally dropped. Every class may
+        // express every selectable role at full magnitude, so the mask is class-independent: all three
+        // selectable roles are legal. Class remains only a hint for the default policy (flavor), never
+        // a permission gate. The unused parameter is kept so the seam's signature is stable.
+        return Bit(RoleContribution::Damage) | Bit(RoleContribution::Tank) | Bit(RoleContribution::Healer);
     }
 
     bool RoleAllowed(uint8_t classId, RoleContribution role)
