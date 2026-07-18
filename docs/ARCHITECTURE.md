@@ -951,12 +951,28 @@ the attacker is a `Player`, it reuses the **same knowledge/expressibility gate a
 attacker's weapon speed, `ProficiencyMgr::EffectStrength`, `IsWindowActive`, `MeleeProcSpellId`), asks
 the core, and on a fire `CastCustomSpell`s the payload at the target — reusing the overheal→shield cast
 pattern (`EffectScripts.cpp`). The engine is **additive** (it casts a spell, it does not touch the
-damage number); the placeholder multipliers stay in place (retiring them is #12). No raw `Player*` is
-retained — everything resolves from the `ObjectGuid` at call time.
+damage number); the placeholder ±% multipliers are demoted to an off-by-default legacy fallback
+(see below, #12). No raw `Player*` is retained — everything resolves from the `ObjectGuid` at call time.
 
 **This PR implements the MELEE slice only** — one trigger, the cast path, full core tests. Remaining
-epic work (follow-ups under #10): the on-cast and on-heal triggers, all brand schools, wiring the full
-school→spell map (#11) into `MeleeProcSpellId`, and retiring the placeholder ±% multiplier (#12).
+epic work (follow-ups under #10): the on-cast and on-heal triggers, all brand schools, and wiring the
+full school→spell map (#11) into `MeleeProcSpellId`.
+
+**Deprecated placeholder — flat ±% damage multiplier (#12).** Effect application (§03) originally
+shipped a flat ±% damage multiplier as its *primary* lever, applied via `UnitScript::Modify*Damage`
+in `EffectScripts.cpp` (§7.9 outgoing/incoming) and `MasteryCombatScripts.cpp` (§14.12 aggregate
+mastery outgoing). A flat ±% multiplier as a **primary** brand expression **violates §0** — brands
+change proc frequency / behaviour / triggers, never flat ±% damage. It was only ever a placeholder
+until the proc engine (§7.9.1, #10) landed. It is therefore **retired as the default lever**: both
+`Modify*Damage` multiplier applications are gated behind a single dedicated config flag,
+`Branding.Effect.LegacyDamageMultiplier`, which **defaults to disabled (0)**. When disabled (the
+default), those UnitScript hooks are no-ops (the multiplier is not applied; damage is unchanged). The
+heal-hook overheal→shield transform (a structural §7.9 #3 mechanic, not a flat ±%) and the proc engine
+are **unaffected** by the flag, as is the separate §2.1 zone-scaling multiplier (`ScalingMgr`). The
+flag exists only as a **reversible escape hatch** while #10 is incomplete (the melee proc slice covers
+one trigger and only some school→spell mappings, so hard-deleting the multiplier now would leave most
+brands/roles expressing nothing). The flag and both multiplier applications are to be **deleted
+outright** once the proc engine (#10) covers all triggers and brands.
 
 ### 7.10 Exotic brand schools (extending §7.1)
 
