@@ -34,6 +34,11 @@ namespace Branding
         void LoadConfig();
         bool Enabled() const;
 
+        // §0/#12: whether the DEPRECATED flat ±% damage multiplier is still applied by the §14.12
+        // combat-mastery UnitScript. Off by default; when false the Modify*Damage hooks are no-ops.
+        // Shares the single Branding.Effect.LegacyDamageMultiplier flag with EffectMgr (§7.9).
+        bool LegacyDamageMultiplierEnabled() const { return _effectConfig.LegacyDamageMultiplierEnabled(); }
+
         // Build the §14.12 application plan for a player from the live Mgrs. v1 passes the player's own
         // active cells as the catalyst roster (the documented raid-roster seam); a later task feeds the
         // surrounding raid roster here. Returns an empty plan when disabled / no valid active cell.
