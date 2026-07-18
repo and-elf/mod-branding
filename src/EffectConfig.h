@@ -15,6 +15,11 @@ namespace Branding
         void Load();
         bool Enabled() const { return _enabled; }
 
+        // §7.9 / §0 (#12): the flat ±% damage multiplier is a DEPRECATED placeholder, retired as the
+        // primary lever in favour of the proc engine (§7.9.1, #10). Off by default; when false the
+        // Modify*Damage multiplier applications are no-ops. Reversible escape hatch until #10 is done.
+        bool LegacyDamageMultiplierEnabled() const { return _legacyDamageMultiplier; }
+
         double MaxPersonalMul() const override { return _maxPersonalMul; }
         double MaxRaidMul() const override { return _maxRaidMul; }
         uint8_t MaxEffectLevel() const override { return _maxEffectLevel; }
@@ -23,6 +28,7 @@ namespace Branding
 
     private:
         bool _enabled = false;
+        bool _legacyDamageMultiplier = false;   // §0/#12: deprecated flat ±% multiplier, off by default
         double _maxPersonalMul = 3.5;   // large (fantasy)
         double _maxRaidMul = 2.0;       // bounded (desirability, not mandate)
         uint8_t _maxEffectLevel = 50;

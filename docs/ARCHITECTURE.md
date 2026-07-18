@@ -985,8 +985,8 @@ the attacker is a `Player`, it reuses the **same knowledge/expressibility gate a
 attacker's weapon speed, `ProficiencyMgr::EffectStrength`, `IsWindowActive`, `MeleeProcSpellId`), asks
 the core, and on a fire `CastCustomSpell`s the payload at the target — reusing the overheal→shield cast
 pattern (`EffectScripts.cpp`). The engine is **additive** (it casts a spell, it does not touch the
-damage number); the placeholder multipliers stay in place (retiring them is #12). No raw `Player*` is
-retained — everything resolves from the `ObjectGuid` at call time.
+damage number); the placeholder ±% multipliers are demoted to an off-by-default legacy fallback
+(see below, #12). No raw `Player*` is retained — everything resolves from the `ObjectGuid` at call time.
 
 **The MELEE slice** covers one trigger, the cast path, the wired school→spell map (#11, above), and
 full core tests. Remaining epic work (follow-ups under #10): the on-cast and on-heal triggers, the
