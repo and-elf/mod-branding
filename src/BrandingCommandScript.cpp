@@ -160,6 +160,7 @@ public:
             { "info",        HandleBrandingInfoCommand,        rbac::RBAC_PERM_COMMAND_DEBUG, Console::No },
             { "heroic",      HandleBrandingHeroicCommand,      rbac::RBAC_PERM_COMMAND_DEBUG, Console::No },
             { "setbrand",    HandleBrandingSetBrandCommand,    rbac::RBAC_PERM_COMMAND_DEBUG, Console::No },
+            { "setlevel",    HandleBrandingSetLevelCommand,    rbac::RBAC_PERM_COMMAND_DEBUG, Console::No },
             { "setproc",     HandleBrandingSetProcCommand,     rbac::RBAC_PERM_COMMAND_DEBUG, Console::No },
             { "setrole",     HandleBrandingSetRoleCommand,     rbac::RBAC_PERM_COMMAND_DEBUG, Console::No },
             { "itembrand",   HandleBrandingItemBrandCommand,   rbac::RBAC_PERM_COMMAND_DEBUG, Console::No },
@@ -842,6 +843,50 @@ public:
         }
 
         handler->PSendSysMessage("Active brand set to {} (proc archetype reset to 0).", BrandName(brandId));
+        return true;
+    }
+
+    // `.branding setlevel <brand> <level>` -- debug: set the calling character's proficiency in `brand`
+    // to `level` (clamped to Branding.Level.Max). Raises only -- SetBrandLevel is idempotent and never
+    // lowers an already-higher proficiency. The effect still needs the brand's account Knowledge to
+    // express (.branding knowledge); this only fills the proficiency ladder that scales magnitude.
+    static bool HandleBrandingSetLevelCommand(ChatHandler* handler, std::string_view brandToken, uint32 level)
+    {
+        Player* player = handler->GetPlayer();
+        if (!player)
+        {
+            handler->SendErrorMessage("This command must be used in-world.");
+            return false;
+        }
+        if (!sProficiencyMgr->Config().Enabled())
+        {
+            handler->SendErrorMessage("Branding module is disabled.");
+            return false;
+        }
+
+        BrandId brand;
+        if (!ParseBrand(brandToken, brand))
+        {
+            handler->SendErrorMessage("Unknown brand '{}'. Use a name (Fire, Frost, ...) or id 0..{}.",
+                brandToken, static_cast<uint32>(BrandId::COUNT) - 1);
+            return false;
+        }
+
+        uint8 const maxLevel = sProficiencyMgr->Config().MaxLevel();
+        if (level > maxLevel)
+            level = maxLevel;
+
+        ObjectGuid const guid = player->GetGUID();
+        uint8 const before = sProficiencyMgr->BrandLevel(guid, brand);
+        sProficiencyMgr->SetBrandLevel(guid, brand, static_cast<uint8>(level));
+        uint8 const after = sProficiencyMgr->BrandLevel(guid, brand);
+
+        if (after == before)
+            handler->PSendSysMessage("Brand {} unchanged at level {} (setlevel only raises; requested {}).",
+                BrandName(brand), uint32(after), level);
+        else
+            handler->PSendSysMessage("Brand {} proficiency set to level {} (was {}).",
+                BrandName(brand), uint32(after), uint32(before));
         return true;
     }
 
