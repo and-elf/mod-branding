@@ -8,13 +8,23 @@ See [../ARCHITECTURE.md](../ARCHITECTURE.md) for the full spec. Section refs (§
 
 ## Done (do not re-do)
 
-- Pure cores for all 9 slices — 87+ GoogleTests (`tests/`, standalone fast loop).
+- Pure cores for all 9 slices — 87+ GoogleTests (`tests/`, standalone fast loop). This **includes the
+  effect-model cores** (`core/effects/`: `PersonalMultiplier`, `RaidMultiplier`,
+  `WindowUptimeFraction`, `EffectProfile`, `IsPrestige`) — decisions + tests are done and correct.
 - Adapters wired + compile-verified: proficiency XP, discovery XP, zone downscaling, dynamic events
   (scoring/guardrails/containment/tier), reward claim (diversity + account ceiling), reward delivery
-  (inventory + mail fallback), allegiance, economy/crafting, item-branding, effects, catalyst, addon
+  (inventory + mail fallback), allegiance, economy/crafting, item-branding, catalyst, addon
   protocol, vault, the **mastery stack** (`MasteryMgr`/`MasteryCombat`/`MasteryEnemy`/`MasteryLoadout`),
   loadout (`SetActiveBrand`), and the `.branding` command surface incl. `knowledge grant/list`.
 - SQL: `character_branding`, `account_brand_knowledge`, mastery + allegiance + economy tables.
+
+> **NOT done — effect *application* (proc engine).** Effect *cores* are done (above), but the combat
+> **application** layer (§7.9 / #03) is **not** finished. What shipped is a **placeholder flat ±%
+> damage multiplier** — never the spec'd windowed, proc-casting expression (procs that cast spells,
+> bounded exposure windows, no passive uptime). The real proc-casting engine is being built under epic
+> **#10** (melee vertical slice in flight); wiring the school→spell maps is **#11**; retiring the
+> placeholder multiplier is **#12**. Until those land, treat #03 as re-opened (see
+> [03-effect-application.md](03-effect-application.md)) — do not count effect application as delivered.
 
 > **Re #01 / #07:** effectively in place — `MasteryMgr` is wired (#07) and `.branding knowledge grant`
 > exists (#01's bootstrap). The §14.13 *economy* unlock path is the remaining work, tracked under the
