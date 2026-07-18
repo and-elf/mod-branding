@@ -4,15 +4,16 @@
 #include "branding/common/Brand.h"
 #include <cstdint>
 
-// Pure core (no AzerothCore includes). §14.11 talent-spec seam: a branded player's role is a player
-// choice per loadout, gated by class CAPABILITY (a rogue can never express Healer), with the default
-// for an unset choice produced by a swappable policy. Class/form/presence arrive as plain numbers so
-// the core stays engine-free; the adapter samples them from the live player.
+// Pure core (no AzerothCore includes). §14.11 talent-spec seam: a branded player's role is a FULLY-OPEN
+// player choice per loadout -- NOT gated by class (#13, owner decision 2026-07-18). The default for an
+// unset choice is produced by a swappable policy (flavor only). Class/form/presence arrive as plain
+// numbers so the core stays engine-free; the adapter samples them from the live player.
 namespace Branding
 {
-    // Bitmask of legal RoleContribution values for a class (bit = 1u << role). WoW 3.3.5 class ids
-    // (SharedDefines.h): Warrior=1 Paladin=2 Hunter=3 Rogue=4 Priest=5 DK=6 Shaman=7 Mage=8 Warlock=9
-    // Druid=11. Damage is legal for every class (the safe default / clamp target).
+    // Bitmask of selectable RoleContribution values (bit = 1u << role). #13: role selection is fully
+    // decoupled from class -- every class may express every selectable role (Damage|Tank|Healer), so
+    // this is class-independent (the parameter is retained only for a stable seam signature). Kept as
+    // the "all legal" constant the default policy clamps against (a no-op for the three real roles).
     uint8_t RoleCapabilityMask(uint8_t classId);
     bool RoleAllowed(uint8_t classId, RoleContribution role);
 
@@ -42,8 +43,8 @@ namespace Branding
         virtual bool UsesSignals() const { return true; }
     };
 
-    // Production default: always Damage (always legal for every class, never the OP role), clamped to
-    // capability for safety. Ignores talents -- players who care pick their role explicitly.
+    // Production default (flavor only): always Damage. Ignores talents -- players who care pick their
+    // role explicitly, and any explicit pick is honoured (no class gate, #13).
     class ClassDefaultRolePolicy : public IDefaultRolePolicy
     {
     public:
@@ -51,17 +52,17 @@ namespace Branding
         bool UsesSignals() const override { return false; }
     };
 
-    // Test-realm swap-in: infer from the dominant talent tab, disambiguating the two tree-ambiguous
-    // classes by live signal -- Druid Feral by bear form (tank) vs cat (dps), DK by Frost Presence
-    // (tank). Result is clamped to capability.
+    // Test-realm swap-in (flavor default only): infer from the dominant talent tab, disambiguating the
+    // two tree-ambiguous classes by live signal -- Druid Feral by bear form (tank) vs cat (dps), DK by
+    // Frost Presence (tank). Only decides the default for an unset choice; never a permission gate.
     class TalentInferredRolePolicy : public IDefaultRolePolicy
     {
     public:
         RoleContribution DefaultRole(RoleSignals const& signals, uint8_t capabilityMask) const override;
     };
 
-    // Effective role for a loadout: honour an explicit (non-None) choice when the class allows it,
-    // clamp an illegal choice to Damage, and delegate an unset (None) choice to the default policy.
+    // Effective role for a loadout: honour any explicit (non-None) selectable choice at full magnitude
+    // (no class gate, #13), and delegate an unset (None) choice to the default policy.
     RoleContribution ResolveSelectedRole(RoleContribution chosen, RoleSignals const& signals,
         IDefaultRolePolicy const& policy);
 }

@@ -803,7 +803,7 @@ branded, and which expression of the active brand fires). This is the expression
 ```cpp
 struct BrandLoadout {                 // per character, persisted
     BrandId          activeBrand;
-    uint8_t          selectedProcArchetype;   // index into the brand+role's available archetypes
+    uint8_t          selectedProcArchetype;   // index into the brand's available archetypes (any archetype; not class/role-gated)
     RoleContribution selectedRole;            // §14.11 player-chosen role; None = auto (policy default)
     // (future) per-slot item-brand proc selections
 };
@@ -814,23 +814,28 @@ bool IsLoadoutValid(BrandLoadout const&, KnowledgeState const&, uint8_t proficie
 ```
 
 Validation invariants (tested): selected brand must be account-unlocked (`CanEarnProficiency`);
-`selectedProcArchetype` must be within the set the (brand, role) exposes *and* unlocked at the
-character's proficiency level (higher archetypes gate behind proficiency). The **core only
-validates and resolves** the chosen archetype to an `EffectProfile`; the **adapter** applies the
-chosen proc to the actual weapon/spell. Loadout changes are subject to friction/cost per design
-(no free instant re-spec abuse) — friction cost computed in core, charged by adapter.
+`selectedProcArchetype` must be unlocked at the character's proficiency level (higher archetypes
+gate behind proficiency). Archetype choice is **not** gated by class or role — any character may
+select any archetype the brand exposes, including one whose expression differs from the character's
+class/role (e.g. a dps class choosing a healing proc). The **core only validates and resolves** the
+chosen archetype to an `EffectProfile`; the **adapter** applies the chosen proc to the actual
+weapon/spell. Loadout changes are subject to friction/cost per design (no free instant re-spec
+abuse) — friction cost computed in core, charged by adapter.
 
-**Role is a player choice, not a class guess (§14.11 talent-spec seam).** The effect's
-`RoleContribution` (which drives the §7.9 PersonalSpike/RaidWindow/MechanicTransform asymmetry) is
-selected **per loadout** by the player (`.branding setrole`), gated by **class capability** — the pure
-`RoleCapabilityMask(classId)` (`core/effects/RolePolicy.h`) decides which roles a class may express
-(e.g. a Rogue may only be Damage; this is the anti-degenerate guardrail that stops a dps class from
-proccing healer shields or tank mitigation). An **unset** role (`None`) is resolved by an injected
-`IDefaultRolePolicy` (DI seam, config-swappable via `Branding.Effect.DefaultRolePolicy`):
-`ClassDefaultRolePolicy` (prod — always Damage, never over-powered) or `TalentInferredRolePolicy`
-(test realms — dominant talent tab, with Druid bear-form and DK Frost-Presence resolving the two
-tree-ambiguous cases). The adapter (`BrandRole`) samples the live signals (talents/form/presence) only
-on the policy path; an explicit choice needs no talent walk. Both the §7.9 effect and §14.12 mastery
+**Role is a fully-open player choice (§14.11 talent-spec seam).** The effect's `RoleContribution`
+(which drives the §7.9 PersonalSpike/RaidWindow/MechanicTransform asymmetry) is selected **per
+loadout** by the player (`.branding setrole`) with **no class-capability gate** — any class may
+select any role at full magnitude, including a dps class choosing the Healer or Tank expression.
+*Decision (owner-ratified 2026-07-18): the former "anti-degenerate" class-capability guardrail
+(`RoleCapabilityMask` blocking e.g. a Rogue from a Healer/Tank proc) is **intentionally dropped**;
+proc-archetype and role selection are fully decoupled from class/role and there is **no magnitude
+clamp**. Magnitude balancing / degeneracy protection is explicitly out of scope.* An **unset** role
+(`None`) is resolved by an injected `IDefaultRolePolicy` (DI seam, config-swappable via
+`Branding.Effect.DefaultRolePolicy`) purely as a **flavor default**, never a permission gate:
+`ClassDefaultRolePolicy` (prod — defaults to Damage) or `TalentInferredRolePolicy` (test realms —
+dominant talent tab, with Druid bear-form and DK Frost-Presence resolving the two tree-ambiguous
+cases). The adapter (`BrandRole`) samples the live signals (talents/form/presence) only on the
+policy path; an explicit choice needs no talent walk. Both the §7.9 effect and §14.12 mastery
 adapters resolve role through this one seam.
 
 **Item brand upgrade progression (Slice 7, pure).** A branded item progresses through a few major
@@ -1697,6 +1702,10 @@ Resulting behaviour:
   respec). The Prot loadout (Defensive-heavy) and Ret loadout (Offensive-heavy) both just exist.
 - **Role / expression resolves live** from the active spec, so §7.9 role-asymmetry (tank spike vs dps
   restraint vs healer transform) flips automatically — same earned level, different expression, no loss.
+  This live resolution is only the **default** when the player has made no explicit choice: role no
+  longer grants or denies *permission* to pick an archetype/role. Per the §7.9 decision (owner-ratified
+  2026-07-18) archetype and role selection are **fully decoupled from class/role** — any character may
+  pick any archetype/role at full magnitude — so spec/class here is flavor-and-default only.
 - **The expensive token applies only to re-allocating points within a loadout**, never to switching specs.
 - **Talent retrain that changes a slot's detected role**: keep earned progression untouched, keep the
   loadout but flag it for review (optionally one free re-allocation on role change). Never auto-wipe.

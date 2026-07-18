@@ -3,8 +3,9 @@
 
 using namespace Branding;
 
-// §14.11 talent-spec seam: role is a player choice per loadout, gated by class CAPABILITY, with the
-// default behind a swappable policy. These tests pin the pure decisions (capability, clamping, both
+// §14.11 talent-spec seam: role is a FULLY-OPEN player choice per loadout -- no class-capability gate
+// (owner decision 2026-07-18, #13). The default (for an unset choice) sits behind a swappable policy.
+// These tests pin the pure decisions (open selection, explicit-choice honouring, both default
 // policies) -- the adapter only samples live signals and calls them.
 
 namespace
@@ -27,40 +28,17 @@ namespace
     }
 }
 
-// === Capability ===
+// === Open selection (#13: no class-capability gate) ===
 
-TEST(RolePolicy, CapabilityPerClass)
+// Every class may express every role -- the former class-capability guardrail is dropped, so a
+// dps class (Rogue/Mage) can select Tank or Healer, at full magnitude, exactly like a hybrid.
+TEST(RolePolicy, AnyRoleAllowedForEveryClass)
 {
-    // Pure dps classes: Damage only.
-    for (uint8_t c : { MAGE, WARLOCK, HUNTER, ROGUE })
+    for (uint8_t c : { WARRIOR, PALADIN, HUNTER, ROGUE, PRIEST, DEATH_KNIGHT, SHAMAN, MAGE, WARLOCK, DRUID })
     {
         EXPECT_TRUE(RoleAllowed(c, RoleContribution::Damage));
-        EXPECT_FALSE(RoleAllowed(c, RoleContribution::Tank));
-        EXPECT_FALSE(RoleAllowed(c, RoleContribution::Healer));
-    }
-
-    // Tank-capable, not healer.
-    for (uint8_t c : { WARRIOR, DEATH_KNIGHT })
-    {
-        EXPECT_TRUE(RoleAllowed(c, RoleContribution::Tank));
-        EXPECT_TRUE(RoleAllowed(c, RoleContribution::Damage));
-        EXPECT_FALSE(RoleAllowed(c, RoleContribution::Healer));
-    }
-
-    // Healer-capable, not tank.
-    for (uint8_t c : { PRIEST, SHAMAN })
-    {
-        EXPECT_TRUE(RoleAllowed(c, RoleContribution::Healer));
-        EXPECT_TRUE(RoleAllowed(c, RoleContribution::Damage));
-        EXPECT_FALSE(RoleAllowed(c, RoleContribution::Tank));
-    }
-
-    // Full hybrids.
-    for (uint8_t c : { PALADIN, DRUID })
-    {
         EXPECT_TRUE(RoleAllowed(c, RoleContribution::Tank));
         EXPECT_TRUE(RoleAllowed(c, RoleContribution::Healer));
-        EXPECT_TRUE(RoleAllowed(c, RoleContribution::Damage));
     }
 }
 
@@ -71,21 +49,23 @@ TEST(RolePolicy, DamageAlwaysAllowed)
         EXPECT_TRUE(RoleAllowed(c, RoleContribution::Damage));
 }
 
-// === ResolveSelectedRole: explicit choice, clamped to capability ===
+// === ResolveSelectedRole: explicit choice always honoured (no clamp) ===
 
-TEST(RolePolicy, ExplicitChoiceHonouredWhenAllowed)
+TEST(RolePolicy, ExplicitChoiceHonoured)
 {
     ClassDefaultRolePolicy policy;
     EXPECT_EQ(ResolveSelectedRole(RoleContribution::Tank, Sig(WARRIOR), policy), RoleContribution::Tank);
     EXPECT_EQ(ResolveSelectedRole(RoleContribution::Healer, Sig(DRUID), policy), RoleContribution::Healer);
 }
 
-// An illegal explicit choice (rogue healer -- the anti-OP case) is clamped to Damage, never honoured.
-TEST(RolePolicy, ExplicitChoiceClampedWhenIllegal)
+// The decoupling case (#13): an off-class explicit choice is honoured at full, never clamped -- a
+// Rogue may express Healer, a Priest may express Tank.
+TEST(RolePolicy, ExplicitOffClassChoiceHonoured)
 {
     ClassDefaultRolePolicy policy;
-    EXPECT_EQ(ResolveSelectedRole(RoleContribution::Healer, Sig(ROGUE), policy), RoleContribution::Damage);
-    EXPECT_EQ(ResolveSelectedRole(RoleContribution::Tank, Sig(PRIEST), policy), RoleContribution::Damage);
+    EXPECT_EQ(ResolveSelectedRole(RoleContribution::Healer, Sig(ROGUE), policy), RoleContribution::Healer);
+    EXPECT_EQ(ResolveSelectedRole(RoleContribution::Tank, Sig(PRIEST), policy), RoleContribution::Tank);
+    EXPECT_EQ(ResolveSelectedRole(RoleContribution::Healer, Sig(MAGE), policy), RoleContribution::Healer);
 }
 
 // None (unset) delegates to the default policy.

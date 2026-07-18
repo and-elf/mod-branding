@@ -1,6 +1,5 @@
 #include "LoadoutMgr.h"
 #include "ProficiencyMgr.h"
-#include "branding/effects/RolePolicy.h"
 #include "DatabaseEnv.h"
 #include "Player.h"
 #include <cstddef>
@@ -131,11 +130,8 @@ namespace Branding
         if (!player)
             return false;
 
-        // None resets to auto (default policy). An explicit role must be one the class can express
-        // (§14.11 capability gate -- this is the anti-OP guardrail; no proficiency/knowledge gate).
-        if (role != RoleContribution::None && !RoleAllowed(player->getClass(), role))
-            return false;
-
+        // #13: role selection is fully decoupled from class -- any role is accepted at full magnitude
+        // (no class-capability gate, no proficiency/knowledge gate). None resets to auto (default policy).
         ObjectGuid const guid = player->GetGUID();
         BrandLoadout candidate = GetLoadout(guid);
         candidate.selectedRole = role;
