@@ -891,6 +891,14 @@ The adapter layer (Slice 7) maps these decisions onto AzerothCore: exposure wind
 + proc-frequency modification; personal spikes → tank survivability auras; mechanic transforms →
 spell-script behavior changes. Core stays pure; only the adapter touches `Spell`/`Aura`/`Unit`.
 
+> **Implementation status (see #03, #10–#12).** The proc-casting adapter above is the spec target, not
+> what first shipped. The initial effect applier was a **placeholder flat ±% damage multiplier** — it
+> was never the windowed, proc-casting expression this section specifies (a flat passive is exactly
+> what the core principle forbids). The real proc-casting engine (procs that *cast spells*) is being
+> built under epic **#10** (melee vertical slice in flight), with the school→spell maps wired under
+> **#11**; the placeholder multiplier is retired under **#12**. Until those land, do not read this
+> section as delivered.
+
 **One-shot Etch — the low-friction on-ramp (issue #31, server-only).** Alongside the crafted Branded
 item (recipe → BoA → multi-week upgrade, §16/#27/#29), a max-level character with at least one unlocked
 school may **Etch** an item they already own — a single, permanent, enchant-like brand. It is the
