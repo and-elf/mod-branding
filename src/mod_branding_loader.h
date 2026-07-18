@@ -20,6 +20,7 @@ void AddBrandingEconomyScripts();
 void AddBrandingDiscoverableScripts();
 void AddBrandingItemScripts();
 void AddBrandingEffectScripts();
+void AddBrandingProcEngineScripts();
 void AddBrandingCatalystScripts();
 void AddBrandingInsightScripts();
 void AddBrandingAddonScripts();
