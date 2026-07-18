@@ -20,17 +20,12 @@ public:
     }
 };
 
-// §7.9 effect application.
+// §7.9 effect application. Composes multiplicatively with §2.1 zone scaling (separate UnitScript):
+// scaling reduces, branding boosts -- "scaling first, branding on top". The §7.9 caps and the windowed
+// "no passive uptime" rule already live in the pure model, so this script is a dumb applier:
 //   - OUTGOING damage  x OutgoingMultiplierFor       (RaidWindow/PersonalSpike during their window)
 //   - INCOMING damage  x IncomingDamageMultiplierFor (tank PersonalSpike survivability spike)
 //   - on heal received: branded-healer overheal -> absorb shield on the target (MechanicTransform)
-//
-// §0/#12: the two flat ±% damage-multiplier hooks are a DEPRECATED placeholder -- a flat ±% is never a
-// primary brand lever (§0); the proc-casting engine (§7.9.1, #10) is the real expression. They are
-// retired as the default: gated behind Branding.Effect.LegacyDamageMultiplier (off by default), a
-// reversible escape hatch until #10 covers all triggers/brands, then to be deleted outright. The heal
-// overheal->shield transform is a structural §7.9 #3 mechanic, NOT a flat ±%, so it is NOT gated.
-// Composes multiplicatively with §2.1 zone scaling (separate UnitScript, unaffected by the flag).
 class BrandingEffectUnitScript : public UnitScript
 {
 public:
@@ -48,9 +43,7 @@ public:
 
     void ModifySpellDamageTaken(Unit* /*target*/, Unit* attacker, int32& damage, SpellInfo const* /*spellInfo*/) override
     {
-        // §0/#12: the flat ±% multiplier is a DEPRECATED placeholder, off by default (the proc engine
-        // §7.9.1 is the real lever). No-op unless the legacy escape hatch is explicitly enabled.
-        if (!sEffectMgr->Enabled() || !sEffectMgr->LegacyDamageMultiplierEnabled() || !attacker)
+        if (!sEffectMgr->Enabled() || !attacker)
             return;
 
         if (Player* player = attacker->ToPlayer())
@@ -62,8 +55,7 @@ public:
     // hooks, which key off the attacker.
     void OnDamage(Unit* /*attacker*/, Unit* victim, uint32& damage) override
     {
-        // §0/#12: deprecated flat ±% multiplier, off by default (see ModifySpellDamageTaken).
-        if (!sEffectMgr->Enabled() || !sEffectMgr->LegacyDamageMultiplierEnabled() || !victim)
+        if (!sEffectMgr->Enabled() || !victim)
             return;
 
         if (Player* player = victim->ToPlayer())
@@ -92,8 +84,7 @@ public:
 private:
     static void ApplyOutgoing(Unit* attacker, uint32& damage)
     {
-        // §0/#12: deprecated flat ±% multiplier, off by default (see ModifySpellDamageTaken).
-        if (!sEffectMgr->Enabled() || !sEffectMgr->LegacyDamageMultiplierEnabled() || !attacker)
+        if (!sEffectMgr->Enabled() || !attacker)
             return;
 
         if (Player* player = attacker->ToPlayer())

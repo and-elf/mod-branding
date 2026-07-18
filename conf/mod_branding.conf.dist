@@ -733,24 +733,6 @@ Branding.Event.SchedulerEnable = 0
 Branding.Effect.Enable = 0
 
 #
-#    Branding.Effect.LegacyDamageMultiplier
-#        Description: DEPRECATED placeholder (§0/§7.9, #12). The original effect application shipped a
-#                     flat +-% damage multiplier as its primary lever (§7.9 outgoing/incoming in
-#                     EffectScripts, §14.12 aggregate mastery outgoing in MasteryCombatScripts). A flat
-#                     +-% as a PRIMARY brand expression violates §0 -- brands change proc frequency /
-#                     behaviour / triggers, never flat +-% damage. The real lever is the proc-casting
-#                     engine (§7.9.1, Branding.Proc.Enable, #10). This flag is a reversible escape hatch
-#                     while the proc engine is incomplete: when 0 (the default) the Modify*Damage
-#                     multiplier hooks are no-ops (damage unchanged); set to 1 to restore the legacy
-#                     behaviour. Does NOT affect the healer overheal->shield transform, the proc engine,
-#                     or the separate §2.1 zone-scaling multiplier. To be removed once #10 covers all
-#                     triggers/brands.
-#        Default:     0 - (disabled; legacy multiplier not applied)
-#
-
-Branding.Effect.LegacyDamageMultiplier = 0
-
-#
 #    Branding.Effect.MaxPersonalMul / MaxRaidMul
 #        Description: §7.9 magnitude caps -- large personal (fantasy, felt by the player) vs bounded
 #                     raid (desirability, not mandate; further reduced by catalyst DR in #04).

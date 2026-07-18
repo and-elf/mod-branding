@@ -25,11 +25,6 @@ namespace Branding
         void LoadConfig();
         bool Enabled() const { return _config.Enabled(); }
 
-        // §0/#12: whether the DEPRECATED flat ±% damage multiplier is still applied. Off by default;
-        // when false the §7.9 Modify*Damage multiplier hooks are no-ops. The proc engine (§7.9.1) and
-        // the healer overheal→shield transform are unaffected. Reversible escape hatch until #10 is done.
-        bool LegacyDamageMultiplierEnabled() const { return _config.LegacyDamageMultiplierEnabled(); }
-
         // Outgoing-damage multiplier in [1.0, MaxPersonalMul] for the player right now; 1.0 when
         // disabled, the brand isn't account-expressible, or the effect window is not active.
         double OutgoingMultiplierFor(Player* attacker) const;
