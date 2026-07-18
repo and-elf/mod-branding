@@ -87,6 +87,11 @@ namespace Branding
     double ExpectedProcs(double ppm, uint32_t elapsedMs, double weaponSpeedS,
         IMasteryTreeConfig const& cfg);
 
+    // Config-free core of the PPM model above (the cfg overload delegates here; the tree config is not
+    // consulted by the expected-procs math). Lets pure consumers that have no IMasteryTreeConfig -- e.g.
+    // the §7.9 proc engine (#10) -- reuse the exact normalization without fabricating a config.
+    double ExpectedProcs(double ppm, uint32_t elapsedMs, double weaponSpeedS);
+
     // §14.10: the tunable proc axes. A cell exposes a SUBSET (its applicable-axis mask). `Reach` (the
     // breadth axis) only applies to area/cleave procs -- rendered as radius OR target count. COUNT last.
     enum class ProcAxis : uint8_t { Ppm = 0, Duration, Magnitude, Reach, COUNT };

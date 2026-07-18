@@ -772,6 +772,38 @@ Branding.Effect.MaxOverhealShieldFraction = 0.30
 Branding.Effect.OverhealShieldSpell = 48066
 
 #
+#    Branding.Proc.Enable
+#        Description: §7.9.1 proc-CASTING engine (#10), MELEE slice. When a branded player deals melee
+#                     damage, the active brand rolls against its PPM (gated by the §7.9 window and the
+#                     anti-P2W expressibility check) and, on a fire, CASTS a spell payload at the target
+#                     -- the headline branding mechanic (procs cast spells, not flat +-% damage). Rides
+#                     the §7.9 effect gate, so it is inert unless Branding.Effect.Enable is on too.
+#        Default:     0 - (disabled)
+#
+
+Branding.Proc.Enable = 0
+
+#
+#    Branding.Proc.MeleePpm
+#        Description: Procs-per-minute for the melee proc slice (PPM-normalized, so weapon speed does
+#                     not change the expected proc rate). The full per-cell PPM from the mastery lattice
+#                     is a follow-up; this is the single dial for the slice.
+#        Default:     2.0
+#
+
+Branding.Proc.MeleePpm = 2.0
+
+#
+#    Branding.Proc.MeleeBaseValue
+#        Description: Unscaled base value fed to the proc payload (SPELLVALUE_BASE_POINT0). The cast
+#                     value is this scaled by the character's [0,1] effect strength (0 at level 0), so
+#                     the proc grows with proficiency and is null for a non-expressible brand.
+#        Default:     250
+#
+
+Branding.Proc.MeleeBaseValue = 250
+
+#
 #    Branding.Effect.DefaultRolePolicy
 #        Description: How a loadout's role is chosen when the player has not set one explicitly
 #                     (§14.11). Players always pick their role with `.branding setrole` (gated by class

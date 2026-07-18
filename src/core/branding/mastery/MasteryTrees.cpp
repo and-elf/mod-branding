@@ -30,8 +30,7 @@ namespace Branding
         return upkeep;
     }
 
-    double ExpectedProcs(double ppm, uint32_t elapsedMs, double weaponSpeedS,
-        IMasteryTreeConfig const& /*cfg*/)
+    double ExpectedProcs(double ppm, uint32_t elapsedMs, double weaponSpeedS)
     {
         if (ppm <= 0.0 || elapsedMs == 0 || weaponSpeedS <= 0.0)
         {
@@ -45,6 +44,12 @@ namespace Branding
         double const swings = elapsedS / weaponSpeedS;
         double const perSwingChance = ppm * weaponSpeedS / 60.0;
         return swings * perSwingChance;
+    }
+
+    double ExpectedProcs(double ppm, uint32_t elapsedMs, double weaponSpeedS,
+        IMasteryTreeConfig const& /*cfg*/)
+    {
+        return ExpectedProcs(ppm, elapsedMs, weaponSpeedS);
     }
 
     ResolvedEnvelope GlobalEnvelope(IMasteryTreeConfig const& cfg)
