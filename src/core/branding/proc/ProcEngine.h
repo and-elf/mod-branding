@@ -59,9 +59,11 @@ namespace Branding
     // and delegates to the roll overload. Kept in core so the RNG stays an injected seam (§8).
     ProcResult ResolveProc(ProcOpportunity const& opp, IRng& rng);
 
-    // §7.9 proc payload SOURCE (melee slice). Maps a brand school to the reused spell shell the engine
-    // casts when its proc fires. Extension point for the full school->spell map (#11): today only Fire
-    // is wired; every other school returns 0 (no proc) until #11 populates the table. Pure data.
+    // §7.9 proc payload SOURCE (melee slice). Convenience seam over the full brand/school->spell map
+    // (#11, branding/proc/ProcSpellMap.h): returns just the reused spell shell the engine casts when a
+    // proc fires. Classic schools reuse their §14.4 Offensive lattice shell; the exotic schools are
+    // wired where a cast-at-victim shell exists. 0 => no proc for this school. Pure data. Callers that
+    // also need the value model use MeleeProcEntry.
     uint32_t MeleeProcSpellId(BrandId brand);
 }
 

@@ -1,4 +1,5 @@
 #include "branding/proc/ProcEngine.h"
+#include "branding/proc/ProcSpellMap.h"
 #include "branding/mastery/MasteryTrees.h"
 #include <algorithm>
 
@@ -52,15 +53,9 @@ namespace Branding
 
     uint32_t MeleeProcSpellId(BrandId brand)
     {
-        // TODO(#11): replace this single-entry mapping with the full school->spell table. For the melee
-        // slice only Fire is wired -- Flamestrike (2120), an existing 3.3.5a fire AoE that takes a
-        // SPELLVALUE_BASE_POINT0 damage override cleanly. Unmapped schools return 0 => no proc fires.
-        switch (brand)
-        {
-            case BrandId::Fire:
-                return 2120u;
-            default:
-                return 0u;
-        }
+        // #11: delegates to the full school->spell map (ProcSpellMap). Convenience seam that yields just
+        // the shell id; callers needing the value model call MeleeProcEntry directly. Unwired schools
+        // return 0 => no proc fires (the ResolveProc spellId gate).
+        return MeleeProcEntry(brand).spellId;
     }
 }

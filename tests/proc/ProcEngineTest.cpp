@@ -141,22 +141,22 @@ TEST(ResolveProcRng, IsReproducibleForAGivenSeed)
     EXPECT_EQ(ResolveProc(opp, a).fired, ResolveProc(opp, b).fired);
 }
 
-// ---- MeleeProcSpellId: the #11 school->spell extension point ---------------------------------------
+// ---- MeleeProcSpellId: the #11 school->spell map seam (full map in ProcSpellMapTest) ----------------
 
-TEST(MeleeProcSpellId, FireIsWiredToAConcreteSpell)
+TEST(MeleeProcSpellId, ClassicSchoolsAreWiredToConcreteSpells)
 {
-    EXPECT_EQ(2120u, MeleeProcSpellId(BrandId::Fire));
+    // #11 replaced the Fire-only stub with the full map: the classic schools reuse their §14.4
+    // Offensive lattice shell (docs/issues/30).
+    EXPECT_EQ(42833u, MeleeProcSpellId(BrandId::Fire));      // Fireball
+    EXPECT_EQ(122u,   MeleeProcSpellId(BrandId::Frost));     // Frost Nova
+    EXPECT_EQ(845u,   MeleeProcSpellId(BrandId::Physical));  // Cleave
 }
 
-TEST(MeleeProcSpellId, UnwiredSchoolsReturnZero)
+TEST(MeleeProcSpellId, DeferredExoticSchoolsReturnZero)
 {
-    // Every non-Fire school is unwired in the slice (0 => no proc) until #11 populates the table.
-    for (uint8_t i = 0; i < static_cast<uint8_t>(BrandId::COUNT); ++i)
-    {
-        BrandId const brand = static_cast<BrandId>(i);
-        if (brand == BrandId::Fire)
-            continue;
-
-        EXPECT_EQ(0u, MeleeProcSpellId(brand)) << "school ordinal " << static_cast<int>(i);
-    }
+    // Exotic schools without a cast-at-victim offensive shell stay unwired (0 => no proc) until the
+    // §7.10 exotic tree projection lands; #11 leaves the structure extensible.
+    EXPECT_EQ(0u, MeleeProcSpellId(BrandId::Void));
+    EXPECT_EQ(0u, MeleeProcSpellId(BrandId::Stone));
+    EXPECT_EQ(0u, MeleeProcSpellId(BrandId::Chrono));
 }

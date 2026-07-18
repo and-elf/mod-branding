@@ -3,6 +3,7 @@
 #include "LoadoutMgr.h"
 #include "ProficiencyMgr.h"
 #include "branding/effects/EffectModel.h"
+#include "branding/proc/ProcSpellMap.h"
 #include "Configuration/Config.h"
 #include "GameTime.h"
 #include "Player.h"
@@ -54,8 +55,13 @@ namespace Branding
         opp.weaponSpeedS = static_cast<double>(attacker->GetAttackTime(BASE_ATTACK)) / 1000.0;
         opp.effectStrength = sProficiencyMgr->EffectStrength(guid, account, brand);   // anti-P2W gated
         opp.windowActive = IsWindowActive(profile, NowMs());
-        opp.spellId = MeleeProcSpellId(brand);   // #11 seam: only Fire wired today
-        opp.baseValue = _meleeBaseValue;
+
+        // #11 school->spell map: the shell to cast + its value model. A SpellDefault shell (absorb/aura)
+        // carries its own magnitude, so it gets no scaled base override; a ScaledBase shell (the wired
+        // damage shells) is fed the config base value, scaled by effect strength inside ResolveProc.
+        MeleeProcSpell const shell = MeleeProcEntry(brand);
+        opp.spellId = shell.spellId;
+        opp.baseValue = shell.value == ProcValueModel::SpellDefault ? 0 : _meleeBaseValue;
 
         return ResolveProc(opp, _rng);
     }
