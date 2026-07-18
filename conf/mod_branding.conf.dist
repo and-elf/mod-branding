@@ -55,20 +55,27 @@ Branding.Xp.DrSlope = 0.00001
 Branding.Xp.DrWindowSeconds = 3600
 
 #
-#    Branding.Level.BaseXp
-#        Description: Level curve base: XpForLevel(n) = round(BaseXp * n^Exponent).
-#        Default:     100.0
+#    Branding.Level.RankBaseXp
+#        Description: Proficiency XP cost of the first brand rank. The ladder is geometric per-rank
+#                     (§7.4): rankCost(n) = round(RankBaseXp * RankGrowth^(n-1)); the cumulative
+#                     threshold is XpForLevel(n) = round(RankBaseXp * (RankGrowth^n - 1) /
+#                     (RankGrowth - 1)), clamped at Branding.Level.Max. This default is a
+#                     playtest-perceptible starting point (issue #14): the first ranks accrue within a
+#                     single post-cap session. Final balance toward the ~3-month time-to-Prestige
+#                     target (§14.13.6) is owned by the #14 xp-balance sim.
+#        Default:     1000.0
 #
 
-Branding.Level.BaseXp = 100.0
+Branding.Level.RankBaseXp = 1000.0
 
 #
-#    Branding.Level.Exponent
-#        Description: Level curve exponent.
-#        Default:     2.0
+#    Branding.Level.RankGrowth
+#        Description: Geometric growth factor applied to each successive rank cost (§7.4). 1.0 is a
+#                     flat/linear ladder; >1.0 steepens the endgame ("easy to start, hard to finish").
+#        Default:     1.01
 #
 
-Branding.Level.Exponent = 2.0
+Branding.Level.RankGrowth = 1.01
 
 #
 #    Branding.Level.Max

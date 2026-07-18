@@ -2,6 +2,7 @@
 #define MOD_BRANDING_SRC_BRANDINGCONFIG_H
 
 #include "branding/common/Config.h"
+#include "branding/proficiency/DefaultLevelCurve.h"
 #include <array>
 #include <cstddef>
 
@@ -41,9 +42,9 @@ namespace Branding
         double _drFloor = 0.1;
         double _drSlope = 0.00001;
         uint64_t _drWindowSeconds = 3600;
-        double _rankBaseXp = 1670800.0;   // live 3.3.5a level-79->80 XP requirement (§7.4)
-        double _rankGrowth = 1.01;         // +1%/rank geometric ladder (§14.13.6)
-        uint8_t _maxLevel = 50;
+        double _rankBaseXp = DefaultLevelCurve::RankBaseXp;   // §7.4 shipped curve (single source of truth)
+        double _rankGrowth = DefaultLevelCurve::RankGrowth;    // +N%/rank geometric ladder (§14.13.6)
+        uint8_t _maxLevel = DefaultLevelCurve::MaxLevel;
     };
 }
 
