@@ -26,8 +26,9 @@ effect resolves to 0. This issue defines how an account unlocks a brand.
 
 ## Acceptance
 - Standard DoD. New GoogleTests if any core rule is added.
-- After `.branding knowledge grant`, the demo kill hook earns XP and `.branding info` shows level>0
-  and non-zero effect strength.
+- After `.branding knowledge grant`, the post-cap XP redirect (§14.13.3, `PostCapXpScripts.cpp`) earns
+  Proficiency for the unlocked brand and `.branding info` shows level>0 and non-zero effect strength.
+  (The old per-kill demo earn was removed in #14 — post-cap XP is the single earn path.)
 
 ## Touch points
 `src/*` (new `KnowledgeMgr.*` or `ProficiencyMgr` edits), `src/BrandingCommandScript.cpp`,

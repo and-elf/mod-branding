@@ -36,7 +36,8 @@ namespace Branding
         // --- Level curve (§7.4 — geometric per-rank; prestige = max level, §14.13.6) ---
         // rankCost(n) = round(RankBaseXp * RankGrowth^(n-1)); the cumulative threshold is
         // XpForLevel(n) = round(RankBaseXp * (RankGrowth^n - 1) / (RankGrowth - 1)), clamped at MaxLevel.
-        // Defaults: RankBaseXp = 1670800 (live level-79->80 XP), RankGrowth = 1.01 (+1%/rank), MaxLevel = 50.
+        // Defaults (playtest-perceptible starting point, issue #14; canonical values in
+        // proficiency/DefaultLevelCurve.h): RankBaseXp = 1000, RankGrowth = 1.01 (+1%/rank), MaxLevel = 50.
         virtual double RankBaseXp() const = 0;
         virtual double RankGrowth() const = 0;
         virtual uint8_t MaxLevel() const = 0;

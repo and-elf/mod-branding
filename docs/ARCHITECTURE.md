@@ -654,9 +654,15 @@ fixed factor, so the ladder steepens toward the top (a grindy endgame, not a gri
 threshold is the closed-form sum
 `XpForLevel(n) = round(cfg.RankBaseXp * (cfg.RankGrowth^n - 1) / (cfg.RankGrowth - 1))`
 (falling back to linear `n * RankBaseXp` when `RankGrowth == 1`), clamped at `cfg.MaxLevel`.
-Defaults: `RankBaseXp = 1670800` (the live 3.3.5a level-79→80 XP requirement, so rank 1 ≈ "one more
-level at 80"), `RankGrowth = 1.01` (+1%/rank), `MaxLevel = 50`. `EffectStrength(level) =
-min(1.0, level / cfg.MaxLevel)` baseline (config may reshape the curve).
+Defaults: `RankBaseXp = 1000`, `RankGrowth = 1.01` (+1%/rank), `MaxLevel = 50`. `EffectStrength(level) =
+min(1.0, level / cfg.MaxLevel)` baseline (config may reshape the curve). The defaults are a
+**playtest-perceptible starting point** (issue #14): denominated in Proficiency units (the curve's own
+currency, not raw player XP — the post-cap adapter converts XP → units first, §14.13.3), rank 1 costs
+1000 units so the first ranks accrue within a single post-cap session, while the geometric factor keeps
+the endgame a grind. Final production balance toward the ~3-month time-to-Prestige target (§14.13.6) is
+owned by the #14 xp-balance sim, which may re-derive `RankBaseXp` against the representative play
+profile. The canonical defaults live in one place — `src/core/branding/proficiency/DefaultLevelCurve.h`
+— which `BrandingConfig` reads as its `sConfigMgr` fallbacks and the curve tests pin.
 
 > All constants live behind `IBrandingConfig`. Production reads `sConfigMgr`; tests inject a
 > `FakeConfig` so formulas are pinned and deterministic.
@@ -2001,9 +2007,17 @@ denominated in gold.
 
 At max player level, normal XP has no sink. *[DEFAULT]* Redirect post-cap XP into the **active school's
 Proficiency** (the §7 per-`(character, brand)` total). The adapter hooks the XP-gain path
-(`OnGiveXP`-style); only the active school grows, dormant schools hold their totals. "Mastery
-experience instead of normal XP" is therefore a thin adapter over the existing Proficiency core — **no
-new pure logic**.
+(`OnGiveXP`-style, `src/PostCapXpScripts.cpp`); only the active school grows, dormant schools hold their
+totals. "Mastery experience instead of normal XP" is therefore a thin adapter over the existing
+Proficiency core — **no new pure logic**.
+
+- **Single earn path (decided, issue #14).** Post-cap XP redirect is the *only* source that grows
+  Proficiency. An earlier `OnPlayerCreatureKill` demonstration hook (`src/ProficiencyScripts.cpp`) that
+  granted 1 unit per kill at *any* level was **removed**: it double-counted against the redirect, earned
+  below the cap (contradicting "post-cap only"), and hard-coded a source/role/brand. Kills therefore
+  accrue Proficiency only through the XP they already grant, once that XP is redirected at max level.
+  Future activity sources (invasions, raids, gathering) feed the same redirect / contribution tracker
+  rather than adding parallel earn hooks — one model, one entry point.
 
 - **Redirect ratio = 1:1 (decided).** One unit of post-cap player XP becomes one unit of Proficiency XP.
   There is **no separate "prestige multiplier"**: the prestige track inherits the §10.1 per-source rates
@@ -2066,14 +2080,20 @@ Enrolling is fast; graduating is the long game. The two clocks are deliberately 
   is per school and runs one at a time — switching focus costs tuition and pauses the others. The
   capstone is therefore a long-tail sum of many 3-month grinds, intentionally a multi-year flex, not a
   separate grind to balance.
-- **Two pinned knobs, defined against a play-profile (decided).** With the redirect fixed at 1:1
-  (§14.13.3) and the rank curve fixed geometric (§7.4: `RankBaseXp = 1670800`, `RankGrowth = 1.01`,
-  `MaxLevel = 50`), time-to-Prestige is **no longer a free tuning knob** — it is the *derived* quotient
-  `XpForLevel(50) ÷ (Proficiency XP per representative day)`. The full ladder costs
-  `1670800 × (1.01⁵⁰ − 1) / 0.01 ≈ 107.7M` XP. "~3 months" therefore means something only relative to a
-  **representative daily session**; that profile (below) is the artifact the owner ratifies. This makes
-  Prestige pacing a **CI-gated target** (the #14 sim asserts time-to-Prestige stays within tolerance of
-  ~3 months for the representative profile), not a hope — the same treatment §8.5 gives the XP-source mix.
+- **Two pinned knobs, defined against a play-profile (decided).** Time-to-Prestige is a *derived*
+  quotient `XpForLevel(MaxLevel) ÷ (Proficiency XP per representative day)`, not a free knob: it falls
+  out of the redirect ratio (§14.13.3) and the geometric rank curve (§7.4). The shipped curve
+  (`RankBaseXp = 1000`, `RankGrowth = 1.01`, `MaxLevel = 50`) is a **playtest-perceptible starting
+  point** (issue #14) — the full ladder costs `1000 × (1.01⁵⁰ − 1) / 0.01 ≈ 64.5k` Proficiency units,
+  deliberately reached in a handful of sessions so the whole enroll→study→graduate arc is observable
+  during development. **This is not yet the ~3-month calibration.** The `1670800` figure (the live
+  3.3.5a level-79→80 XP requirement) that would put the ladder near `107.7M` and the ~3-month clock is
+  the *target* the #14 xp-balance sim re-derives against the representative profile below; when it does,
+  it moves the single `RankBaseXp` default in `DefaultLevelCurve.h`. "~3 months" therefore means
+  something only relative to a **representative daily session**; that profile (below) is the artifact the
+  owner ratifies. This makes Prestige pacing a **CI-gated target** (the #14 sim asserts time-to-Prestige
+  stays within tolerance for the representative profile), not a hope — the same treatment §8.5 gives the
+  XP-source mix.
 - **Representative play-session profile (owner-ratified — drives #14 and §8.5).** One representative
   *active* day on one school yields ≈ **1.20M player-XP/day** at production rates, split to hit the §8.5
   target mix: Questing ≈ 538k · Professions ≈ 299k · Exploration ≈ 239k · Discoveries ≈ 120k. At 1:1

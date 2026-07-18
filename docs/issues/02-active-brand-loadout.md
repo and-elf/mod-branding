@@ -5,7 +5,7 @@
 ## Context
 Players need to *choose* their active brand and proc archetype (§7.9 `BrandLoadout`,
 `IsLoadoutValid`). This is the root prerequisite for the effect-application stack (#03→#04/#05) and
-for activity capture (which currently hardcodes `BrandId::Fire` in the demo kill hook).
+for activity capture (the active brand now drives the post-cap XP redirect, §14.13.3 / #14).
 
 ## Scope
 - Pure: reuse `core/effects/ItemBrand.h` `BrandLoadout` + `IsLoadoutValid` (already tested). Add a
